@@ -317,11 +317,15 @@ Crie um estilo impec\xE1vel em Portugu\xEAs. As cores devem garantir excelente l
         responseMimeType: "application/json",
         responseSchema: {
           type: import_genai.Type.OBJECT,
-          required: ["name", "description", "sidebarTitle", "theme"],
+          required: ["name", "pageTitle", "description", "sidebarTitle", "theme"],
           properties: {
             name: {
               type: import_genai.Type.STRING,
               description: "Nome customizado para o APP HUB (ex: Lyra Studio - App Hub, ou algo inspirado pelo prompt/estilo)."
+            },
+            pageTitle: {
+              type: import_genai.Type.STRING,
+              description: "T\xEDtulo elegante da p\xE1gina para aparecer na aba do navegador (ex: \u{1F680} Lyra Core, \u{1F52E} Cyber Hub, etc)"
             },
             description: {
               type: import_genai.Type.STRING,
@@ -333,7 +337,7 @@ Crie um estilo impec\xE1vel em Portugu\xEAs. As cores devem garantir excelente l
             },
             theme: {
               type: import_genai.Type.OBJECT,
-              required: ["bg", "card", "border", "accent", "text", "gray", "gridOverlay", "glowHex", "fontSans", "fontDisplay", "extraCSS"],
+              required: ["bg", "card", "border", "accent", "text", "gray", "gridOverlay", "glowHex", "fontSans", "fontDisplay", "extraCSS", "customIconSVG"],
               properties: {
                 bg: { type: import_genai.Type.STRING, description: "Cor hex do fundo principal" },
                 card: { type: import_genai.Type.STRING, description: "Cor hex de fundo dos componentes/cards" },
@@ -345,7 +349,11 @@ Crie um estilo impec\xE1vel em Portugu\xEAs. As cores devem garantir excelente l
                 glowHex: { type: import_genai.Type.STRING, description: "Sombra de relevo ou cor brilhante (ex: rgba(x, y, z, 0.25) ou hex)." },
                 fontSans: { type: import_genai.Type.STRING, description: "Font-family sans-serif padr\xE3o para o corpo do texto" },
                 fontDisplay: { type: import_genai.Type.STRING, description: "Font-family para os headers e logos" },
-                extraCSS: { type: import_genai.Type.STRING, description: "Trecho de c\xF3digo CSS adicional se precisar para injetar no container." }
+                extraCSS: { type: import_genai.Type.STRING, description: "Trecho de c\xF3digo CSS adicional se precisar para injetar no container." },
+                customIconSVG: {
+                  type: import_genai.Type.STRING,
+                  description: 'Um \xEDcone vetorizado completo e bel\xEDssimo em formato SVG estruturado dentro de uma tag <svg viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">. Crie gradientes, estrelas de quatro pontas cintilantes, formas abstratas ou letras estilizadas condizentes com o tema solicitado. Use as cores do tema!'
+                }
               }
             }
           }
