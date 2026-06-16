@@ -180,6 +180,146 @@ Instru\xE7\xF5es:
     res.status(500).json({ error: error.message || "Falha na an\xE1lise de IA com o Gemini." });
   }
 });
+app.post("/api/gemini/validate", async (req, res) => {
+  const { key } = req.body;
+  if (!key || typeof key !== "string" || key.trim() === "") {
+    res.status(400).json({ success: false, error: "Chave n\xE3o informada." });
+    return;
+  }
+  try {
+    const tempAi = new import_genai.GoogleGenAI({
+      apiKey: key,
+      httpOptions: {
+        headers: {
+          "User-Agent": "aistudio-build"
+        }
+      }
+    });
+    const response = await tempAi.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: "Diga apenas a palavra 'OK' em mai\xFAsculo."
+    });
+    if (response.text && response.text.trim().includes("OK")) {
+      res.json({ success: true });
+    } else {
+      res.json({ success: true, warning: "Chave v\xE1lida, mas formato de resposta inesperado." });
+    }
+  } catch (err) {
+    console.error("Erro ao validar chave Gemini:", err);
+    res.status(400).json({ success: false, error: err.message || "Chave inv\xE1lida ou erro na valida\xE7\xE3o." });
+  }
+});
+app.post("/api/theme/customize", async (req, res) => {
+  const { prompt, image, mimeType, userKey, scope = "layout" } = req.body;
+  const activeApiKey = userKey && typeof userKey === "string" && userKey.trim() !== "" ? userKey : process.env.GEMINI_API_KEY;
+  if (!activeApiKey) {
+    res.status(400).json({
+      error: "Para personalizar o tema usando IA, \xE9 necess\xE1rio configurar a Chave de API do Gemini no painel de expans\xE3o."
+    });
+    return;
+  }
+  try {
+    const tempAi = new import_genai.GoogleGenAI({
+      apiKey: activeApiKey,
+      httpOptions: {
+        headers: {
+          "User-Agent": "aistudio-build"
+        }
+      }
+    });
+    let scopeInstruction = "";
+    if (scope === "colors") {
+      scopeInstruction = "MODO DE ESCOPO: [SUBSTITUIR APENAS CORES]. Mude estritamente as propriedades de cor (bg, card, border, accent, text, gray, glowHex, gridOverlay) gerando paletas lindas e coerentes com contraste WCAG AA. O campo 'extraCSS' DEVE ser vazio ou conter apenas vari\xE1veis, preservando todo o layout, fontes originais, margens e padding intocados.";
+    } else if (scope === "refine") {
+      scopeInstruction = "MODO DE ESCOPO: [APENAS REFINAR LAYOUT]. Fa\xE7a pequenos refinamentos cosm\xE9ticos no tema, tipografias e pequenos extras de CSS (bordas, sutis sombras ou transi\xE7\xF5es) baseados no prompt sem causar mudan\xE7as bruscas de estrutura\xE7\xE3o f\xEDsica do app.";
+    } else {
+      scopeInstruction = "MODO DE ESCOPO: [TODO O LAYOUT]. Voc\xEA est\xE1 plenamente autorizado e incentivado a revolucionar a apar\xEAncia e layout de qualquer componente de forma radical, usando o campo 'extraCSS' para estilizar livremente seletores chaves do app. Garanta que a ess\xEAncia e as funcionalidades (inputs, listas, links de click e bot\xF5es) funcionem com perfei\xE7\xE3o!";
+    }
+    const runPrompt = `Voc\xEA \xE9 um Designer Web Expert e engenheiro de interfaces ricas. O usu\xE1rio quer redefinir totalmente a cara do seu app HUB de projetos.
+
+${scopeInstruction}
+
+${prompt ? `Solicita\xE7\xE3o do usu\xE1rio: "${prompt}"` : "Crie um estilo inovador baseado na refer\xEAncia de imagem anexada."}
+
+DIRETRIZES DE MANIPULA\xC7\xC3O DE COMPONENTES:
+O aplicativo HTML e CSS no frontend exp\xF5e os seguintes IDs e classes para estiliza\xE7\xE3o via 'extraCSS' (apenas quando o escopo permitir modifica\xE7\xF5es de layout):
+- '#cyber-app-root': O cont\xEAiner pai de toda a tela viewport.
+- '#cyber-sidebar': O menu de barra lateral (desktop) / cabe\xE7alho superior (celular). Voc\xEA pode mudar seu background, largura, bordas, sombras ou transforma\xE7\xF5es.
+- '#cyber-sidebar-logo-group': Logotipo e t\xEDtulo reduzido na barra lateral.
+- '#cyber-sidebar-metrics': Cart\xF5es e m\xE9tricas de monitoramento num\xE9rico.
+- '#cyber-sidebar-active-index': Status de indexador e bot\xE3o de acesso ao GitHub.
+- '#cyber-content-area': O painel principal \xE0 direita que rola e renderiza os aplicativos.
+- '#cyber-filters-header': Painel de filtro de categorias, barra de busca e t\xEDtulo.
+- '#cyber-search-controls': Linha com os campos de input, selects e filtros.
+- '#cyber-projects-grid': O grid CSS que alinha os cart\xF5es.
+- '.repo-card': Os cart\xF5es de reposit\xF3rios individuais. Pode customizar seu padding, border-radius, background, hover triggers, etc.
+- '#btn-open-ai-customizer': O bot\xE3o flutuante de IA do design menu.
+- '#btn-github-access': O bot\xE3o de credencial GitHub.
+
+Crie um estilo impec\xE1vel em Portugu\xEAs. As cores devem garantir excelente legibilidade. O visual pode ser qualquer coisa que combine com a solicita\xE7\xE3o: vintage, fic\xE7\xE3o cient\xEDfica cyberpunk neon, minimalista n\xF3rdico, editorial preto e branco de alta costura, brutalista urbano moderno ou futurista cintilante. Retorne apenas o JSON no formato requisitado pelo esquema de estilo.`;
+    const contentsParts = [];
+    if (image && typeof image === "string" && image.trim() !== "") {
+      const cleanBase64 = image.replace(/^data:image\/\w+;base64,/, "");
+      contentsParts.push({
+        inlineData: {
+          data: cleanBase64,
+          mimeType: mimeType || "image/png"
+        }
+      });
+    }
+    contentsParts.push({
+      text: runPrompt
+    });
+    const response = await tempAi.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: { parts: contentsParts },
+      config: {
+        systemInstruction: "Voc\xEA \xE9 um gerador determinista altamente criativo de temas e estilos de aplica\xE7\xE3o de backend que retorna dados JSON compat\xEDveis com o esquema de estilo.",
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: import_genai.Type.OBJECT,
+          required: ["name", "description", "sidebarTitle", "theme"],
+          properties: {
+            name: {
+              type: import_genai.Type.STRING,
+              description: "Nome customizado para o APP HUB (ex: Lyra Studio - App Hub, ou algo inspirado pelo prompt/estilo)."
+            },
+            description: {
+              type: import_genai.Type.STRING,
+              description: "Subt\xEDtulo do HUB sintonizado com o estilo visual definido."
+            },
+            sidebarTitle: {
+              type: import_genai.Type.STRING,
+              description: "T\xEDtulo reduzido da marca na barra lateral superior (ex: LYRA STUDIO ou sigla)."
+            },
+            theme: {
+              type: import_genai.Type.OBJECT,
+              required: ["bg", "card", "border", "accent", "text", "gray", "gridOverlay", "glowHex", "fontSans", "fontDisplay", "extraCSS"],
+              properties: {
+                bg: { type: import_genai.Type.STRING, description: "Cor hex do fundo principal" },
+                card: { type: import_genai.Type.STRING, description: "Cor hex de fundo dos componentes/cards" },
+                border: { type: import_genai.Type.STRING, description: "Cor hex de bordas e divisores" },
+                accent: { type: import_genai.Type.STRING, description: "Cor hex principal de destaques vibrantes" },
+                text: { type: import_genai.Type.STRING, description: "Cor hex do texto principal" },
+                gray: { type: import_genai.Type.STRING, description: "Cor hex do texto secund\xE1rio" },
+                gridOverlay: { type: import_genai.Type.STRING, description: "F\xF3rmula de background CSS para o fundo do viewport (ex: gradientes, patterns ou grids)." },
+                glowHex: { type: import_genai.Type.STRING, description: "Sombra de relevo ou cor brilhante (ex: rgba(x, y, z, 0.25) ou hex)." },
+                fontSans: { type: import_genai.Type.STRING, description: "Font-family sans-serif padr\xE3o para o corpo do texto" },
+                fontDisplay: { type: import_genai.Type.STRING, description: "Font-family para os headers e logos" },
+                extraCSS: { type: import_genai.Type.STRING, description: "Trecho de c\xF3digo CSS adicional se precisar para injetar no container." }
+              }
+            }
+          }
+        }
+      }
+    });
+    const parsedTheme = JSON.parse(response.text?.trim() || "{}");
+    res.json(parsedTheme);
+  } catch (error) {
+    console.error("Erro na personaliza\xE7\xE3o com Gemini:", error);
+    res.status(500).json({ error: error.message || "Erro para personalizar com a Intelig\xEAncia Artificial." });
+  }
+});
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await (0, import_vite.createServer)({
