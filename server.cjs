@@ -280,6 +280,21 @@ ${scopeInstruction}
 
 ${prompt ? `Solicita\xE7\xE3o do usu\xE1rio: "${prompt}"` : "Crie um estilo inovador baseado na refer\xEAncia de imagem anexada."}
 
+DIRETRIZES DE ESTILO, REARRANJO DE ELEMENTOS E USO MULTIMODAL DE IMAGEM:
+1. REARRANJO DE LAYOUT E MUDAN\xC7A DE POSI\xC7\xC3O:
+Se o usu\xE1rio solicitar rearranjos de posi\xE7\xE3o ou modifica\xE7\xF5es gen\xE9ricas (ex: "Mude de posi\xE7\xE3o os cards", "Crie colunas", "Coloque a barra lateral na direita", "Sidebar no topo", "Mude tudo", etc.), voc\xEA tem total autoridade para alterar estruturalmente o layout usando a propriedade CSS 'extraCSS'. Por exemplo:
+- Para mover a barra lateral para a direita: '#cyber-app-root { flex-direction: row-reverse !important; }'
+- Para colocar a barra lateral no topo (como cabe\xE7alho): '#cyber-app-root { flex-direction: column !important; } #cyber-sidebar { width: 100% !important; border-right: none !important; border-bottom: 1px solid var(--color-cyber-border) !important; flex-direction: row !important; align-items: center !important; }'
+- Para mudar os cards para modo lista vertical ampla: '#cyber-projects-grid { grid-template-columns: 1fr !important; }'
+- Voc\xEA tamb\xE9m pode usar as propriedades Flexbox/Grid 'order' para reordenar elementos livremente!
+
+2. INSER\xC7\xC3O DIRETA DA IMAGEM CARREGADA:
+Se houver uma imagem carregada pelo usu\xE1rio (voc\xEA a receber\xE1 em formato multimodal), e ele pedir para inseri-la de fato na p\xE1gina ou como elemento visual real (ex: "Insira esta imagem como plano de fundo", "Use como logotipo do app", "Coloque a tela de fundo com esse desenho", etc.), use a vari\xE1vel CSS global '--user-uploaded-image' que exp\xF5e o data-URI no frontend!
+Por exemplo: 
+- '#cyber-app-root { background-image: var(--user-uploaded-image) !important; background-size: cover !important; background-position: center !important; }'
+- Ou usar como logotipo/efeito no sidebar: '#cyber-sidebar::before { content: ""; background-image: var(--user-uploaded-image) !important; ... }'
+Isso possibilita a inser\xE7\xE3o limpa e em tempo de execu\xE7\xE3o da imagem fornecida pelo usu\xE1rio, de acordo com o pedido!
+
 DIRETRIZES DE MANIPULA\xC7\xC3O DE COMPONENTES:
 O aplicativo HTML e CSS no frontend exp\xF5e os seguintes IDs e classes para estiliza\xE7\xE3o via 'extraCSS' (apenas quando o escopo permitir modifica\xE7\xF5es de layout):
 - '#cyber-app-root': O cont\xEAiner pai de toda a tela viewport.
@@ -295,7 +310,7 @@ O aplicativo HTML e CSS no frontend exp\xF5e os seguintes IDs e classes para est
 - '#btn-open-ai-customizer': O bot\xE3o flutuante de IA do design menu.
 - '#btn-github-access': O bot\xE3o de credencial GitHub.
 
-Crie um estilo impec\xE1vel em Portugu\xEAs. As cores devem garantir excelente legibilidade. O visual pode ser qualquer coisa que combine com a solicita\xE7\xE3o: vintage, fic\xE7\xE3o cient\xEDfica cyberpunk neon, minimalista n\xF3rdico, editorial preto e branco de alta costura, brutalista urbano moderno ou futurista cintilante. Retorne apenas o JSON no formato requisitado pelo esquema de estilo.`;
+Crie um estilo impec\xE1vel em Portugu\xEAs. As cores devem garantir excelente legibilidade. O visual pode ser qualquer coisa que combine com a solicita\xE7\xE3o: vintage, fic\xE7\xE3o cient\xEDfica cyberpunk neon, m\xEDstico, minimalista n\xF3rdico, editorial de alta costura, brutalista moderno ou futurista cintilante. Retorne apenas o JSON no formato requisitado pelo esquema de estilo.`;
     const contentsParts = [];
     if (image && typeof image === "string" && image.trim() !== "") {
       const cleanBase64 = image.replace(/^data:image\/\w+;base64,/, "");
