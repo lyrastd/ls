@@ -39,6 +39,45 @@ var ai = new import_genai.GoogleGenAI({
     }
   }
 });
+async function generateContentWithFallback(aiClient, params) {
+  let requestModel = params.model || "gemini-2.5-flash";
+  if (requestModel === "gemini-3.5-flash") {
+    requestModel = "gemini-2.5-flash";
+  }
+  const fallbackModel = "gemini-2.0-flash-lite";
+  try {
+    return await aiClient.models.generateContent({
+      ...params,
+      model: requestModel
+    });
+  } catch (err) {
+    const errorStr = typeof err === "object" ? JSON.stringify(err) : String(err);
+    const isTemporary = errorStr.includes("503") || errorStr.includes("UNAVAILABLE") || errorStr.includes("high demand") || errorStr.includes("busy") || errorStr.includes("rate limit") || errorStr.includes("Rate limit") || err.status === 503 || err.status === 429;
+    if (!isTemporary) {
+      throw err;
+    }
+    console.warn(`[Gemini] ${requestModel} est\xE1 temporariamente indispon\xEDvel devido a alta demanda (Erro: ${err.message || err}). Tentando fallback para ${fallbackModel} ap\xF3s 1 segundo...`);
+    await new Promise((resolve) => setTimeout(resolve, 1e3));
+    try {
+      return await aiClient.models.generateContent({
+        ...params,
+        model: fallbackModel
+      });
+    } catch (fallbackErr) {
+      console.warn(`[Gemini] Fallback ${fallbackModel} tamb\xE9m falhou. Tentando uma \xFAltima vez com o modelo principal ${requestModel} ap\xF3s 1.5s...`);
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      try {
+        return await aiClient.models.generateContent({
+          ...params,
+          model: requestModel
+        });
+      } catch (retryErr) {
+        console.error(`[Gemini] Todas as tentativas falharam.`);
+        throw retryErr;
+      }
+    }
+  }
+}
 app.get("/api/github/repos", async (req, res) => {
   const { username, token } = req.query;
   if (!username || typeof username !== "string") {
@@ -132,7 +171,7 @@ Instru\xE7\xF5es:
 4. Identifique at\xE9 3 recursos/destaques principais do projeto (funcionalidades inovadoras ou diferenciais).
 5. Sugira at\xE9 2 dicas inteligentes de melhoria ou pr\xF3ximo passo para o projeto.
 6. Forne\xE7a uma nota de portf\xF3lio criativa de 50 a 100 baseado na completeza do projeto (quantidade de informa\xE7\xF5es, readme estruturado, etc).`;
-    const response = await ai.models.generateContent({
+    const response = await generateContentWithFallback(ai, {
       model: "gemini-3.5-flash",
       contents: prompt,
       config: {
@@ -195,7 +234,7 @@ app.post("/api/gemini/validate", async (req, res) => {
         }
       }
     });
-    const response = await tempAi.models.generateContent({
+    const response = await generateContentWithFallback(tempAi, {
       model: "gemini-3.5-flash",
       contents: "Diga apenas a palavra 'OK' em mai\xFAsculo."
     });
@@ -270,7 +309,7 @@ Crie um estilo impec\xE1vel em Portugu\xEAs. As cores devem garantir excelente l
     contentsParts.push({
       text: runPrompt
     });
-    const response = await tempAi.models.generateContent({
+    const response = await generateContentWithFallback(tempAi, {
       model: "gemini-3.5-flash",
       contents: { parts: contentsParts },
       config: {
