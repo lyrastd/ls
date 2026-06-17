@@ -249,7 +249,7 @@ app.post("/api/gemini/validate", async (req, res) => {
   }
 });
 app.post("/api/theme/customize", async (req, res) => {
-  const { prompt, image, mimeType, userKey, scope = "layout" } = req.body;
+  const { prompt, image, mimeType, userKey, scope = "layout", currentTheme } = req.body;
   const activeApiKey = userKey && typeof userKey === "string" && userKey.trim() !== "" ? userKey : process.env.GEMINI_API_KEY;
   if (!activeApiKey) {
     res.status(400).json({
@@ -270,7 +270,12 @@ app.post("/api/theme/customize", async (req, res) => {
     if (scope === "colors") {
       scopeInstruction = "MODO DE ESCOPO: [SUBSTITUIR APENAS CORES]. Mude estritamente as propriedades de cor (bg, card, border, accent, text, gray, glowHex, gridOverlay) gerando paletas lindas e coerentes com contraste WCAG AA. O campo 'extraCSS' DEVE ser vazio ou conter apenas vari\xE1veis, preservando todo o layout, fontes originais, margens e padding intocados.";
     } else if (scope === "refine") {
-      scopeInstruction = "MODO DE ESCOPO: [APENAS REFINAR LAYOUT]. Fa\xE7a pequenos refinamentos cosm\xE9ticos no tema, tipografias e pequenos extras de CSS (bordas, sutis sombras ou transi\xE7\xF5es) baseados no prompt sem causar mudan\xE7as bruscas de estrutura\xE7\xE3o f\xEDsica do app.";
+      scopeInstruction = `MODO DE ESCOPO: [APENAS REFINAR LAYOUT]. Fa\xE7a pequenos refinamentos cosm\xE9ticos no tema, tipografias e pequenos extras de CSS (bordas, sutis sombras ou transi\xE7\xF5es) baseados no prompt sem causar mudan\xE7as bruscas de estrutura\xE7\xE3o f\xEDsica do app.
+Voc\xEA DEVE obrigatoriamente manter o m\xE1ximo poss\xEDvel do estado atual do tema que foi fornecido a voc\xEA: ${currentTheme ? JSON.stringify(currentTheme) : "n\xE3o fornecido"}.
+As propriedades 'name', 'pageTitle', 'description', 'sidebarTitle' e a paleta de cores atuais em 'theme' DEVEM ser mantidas id\xEAnticas a menos que o usu\xE1rio pe\xE7a explicitamente para alter\xE1-las em sua mensagem. N\xE3o altere nada al\xE9m do estritamente solicitado.
+GERA\xC7\xC3O DE IMAGEM DE FUNDO: Apenas no modo 'Refinar', se e somente se o usu\xE1rio solicitar explicitamente uma imagem de fundo (ex: atrav\xE9s de termos como "plano de fundo", "imagem de fundo", "background image", "imagem no fundo", etc.), voc\xEA poder\xE1 usar ou definir a propriedade '--user-uploaded-image' no 'extraCSS' para colocar a imagem de fundo, por exemplo:
+'#cyber-app-root { background-image: var(--user-uploaded-image) !important; background-size: cover !important; background-position: center !important; }'
+Se o usu\xE1rio N\xC3O pedir explicitamente por imagem no fundo / plano de fundo / background image, voc\xEA N\xC3O deve sob hip\xF3tese alguma definir isso ou alterar as propriedades do plano de fundo atual.`;
     } else {
       scopeInstruction = "MODO DE ESCOPO: [TODO O LAYOUT]. Voc\xEA est\xE1 plenamente autorizado e incentivado a revolucionar a apar\xEAncia e layout de qualquer componente de forma radical, usando o campo 'extraCSS' para estilizar livremente seletores chaves do app. Garanta que a ess\xEAncia e as funcionalidades (inputs, listas, links de click e bot\xF5es) funcionem com perfei\xE7\xE3o!";
     }
