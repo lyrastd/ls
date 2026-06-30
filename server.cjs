@@ -82,14 +82,20 @@ app.post("/api/theme/config", (req, res) => {
     res.status(500).json({ error: "Erro ao salvar as configura\xE7\xF5es do tema." });
   }
 });
-var ai = new import_genai.GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-  httpOptions: {
-    headers: {
-      "User-Agent": "aistudio-build"
-    }
+function getAiClient(userKey) {
+  const key = userKey || process.env.GEMINI_API_KEY;
+  if (!key) {
+    throw new Error("Chave de API do Gemini n\xE3o configurada. Por favor, cadastre sua chave nas configura\xE7\xF5es.");
   }
-});
+  return new import_genai.GoogleGenAI({
+    apiKey: key,
+    httpOptions: {
+      headers: {
+        "User-Agent": "aistudio-build"
+      }
+    }
+  });
+}
 async function generateContentWithFallback(aiClient, params) {
   let requestModel = params.model || "gemini-3.5-flash";
   if (requestModel === "gemini-2.5-flash") {
@@ -222,7 +228,8 @@ Instru\xE7\xF5es:
 4. Identifique at\xE9 3 recursos/destaques principais do projeto (funcionalidades inovadoras ou diferenciais).
 5. Sugira at\xE9 2 dicas inteligentes de melhoria ou pr\xF3ximo passo para o projeto.
 6. Forne\xE7a uma nota de portf\xF3lio criativa de 50 a 100 baseado na completeza do projeto (quantidade de informa\xE7\xF5es, readme estruturado, etc).`;
-    const response = await generateContentWithFallback(ai, {
+    const aiClient = getAiClient();
+    const response = await generateContentWithFallback(aiClient, {
       model: "gemini-3.5-flash",
       contents: prompt,
       config: {
