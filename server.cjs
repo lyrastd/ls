@@ -27,10 +27,61 @@ var import_path = __toESM(require("path"), 1);
 var import_vite = require("vite");
 var import_genai = require("@google/genai");
 var import_dns = __toESM(require("dns"), 1);
+var import_fs = __toESM(require("fs"), 1);
 import_dns.default.setDefaultResultOrder("ipv4first");
 var app = (0, import_express.default)();
 var PORT = 3e3;
-app.use(import_express.default.json());
+app.use(import_express.default.json({ limit: "50mb" }));
+app.use(import_express.default.urlencoded({ limit: "50mb", extended: true }));
+app.get("/api/theme/config", (req, res) => {
+  const configPath = import_path.default.join(process.cwd(), "theme-config.json");
+  try {
+    if (import_fs.default.existsSync(configPath)) {
+      const data = import_fs.default.readFileSync(configPath, "utf-8");
+      res.json(JSON.parse(data));
+    } else {
+      const defaultData = {
+        activeTheme: {
+          name: "Lyra Studio - APP HUB",
+          pageTitle: "= - Lyra Studio || Central de Apps - =",
+          description: "Explore os sistemas de produ\xE7\xE3o desenvolvidos e implantados pela Lyra Studio",
+          sidebarTitle: "LYRA STUDIO",
+          bg: "#050505",
+          card: "#0c0c0c",
+          border: "#1a1a1a",
+          accent: "#00F0FF",
+          text: "#EDEDED",
+          gray: "#888888",
+          gridOverlay: "linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px)",
+          glowHex: "rgba(0, 240, 255, 0.2)",
+          fontSans: '"Inter", ui-sans-serif, system-ui, sans-serif',
+          fontDisplay: '"Space Grotesk", sans-serif',
+          extraCSS: "",
+          customIconSVG: "",
+          uploadedImage: ""
+        },
+        savedThemes: [],
+        generatedImages: []
+      };
+      import_fs.default.writeFileSync(configPath, JSON.stringify(defaultData, null, 2), "utf-8");
+      res.json(defaultData);
+    }
+  } catch (err) {
+    console.error("Erro ao ler config:", err);
+    res.status(500).json({ error: "Erro ao ler as configura\xE7\xF5es do tema." });
+  }
+});
+app.post("/api/theme/config", (req, res) => {
+  const configPath = import_path.default.join(process.cwd(), "theme-config.json");
+  try {
+    const newConfig = req.body;
+    import_fs.default.writeFileSync(configPath, JSON.stringify(newConfig, null, 2), "utf-8");
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Erro ao salvar config:", err);
+    res.status(500).json({ error: "Erro ao salvar as configura\xE7\xF5es do tema." });
+  }
+});
 var ai = new import_genai.GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
   httpOptions: {
@@ -40,11 +91,11 @@ var ai = new import_genai.GoogleGenAI({
   }
 });
 async function generateContentWithFallback(aiClient, params) {
-  let requestModel = params.model || "gemini-2.5-flash";
-  if (requestModel === "gemini-3.5-flash") {
-    requestModel = "gemini-2.5-flash";
+  let requestModel = params.model || "gemini-3.5-flash";
+  if (requestModel === "gemini-2.5-flash") {
+    requestModel = "gemini-3.5-flash";
   }
-  const fallbackModel = "gemini-2.0-flash-lite";
+  const fallbackModel = "gemini-3.1-flash-lite";
   try {
     return await aiClient.models.generateContent({
       ...params,
